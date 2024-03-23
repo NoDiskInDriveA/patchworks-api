@@ -1,0 +1,25 @@
+{
+    "name": "nodiskindrivea/patchworks-api",
+    "type": "library",
+    "license": "proprietary",
+    "autoload": {
+        "psr-4": {
+            "Nodiskindrivea\\PatchworksApi\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Patrick Durold",
+            "email": "patrick@durold.de"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "php": "^8.1.27",
+        "amphp/http-client": "^5.0",
+        "psr/log": "^3.0"
+    },
+    "require-dev": {
+        "amphp/phpunit-util": "^3.0"
+    }
+}
