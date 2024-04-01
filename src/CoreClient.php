@@ -40,7 +40,7 @@ class CoreClient extends AbstractClient
         );
     }
 
-    public function getScriptContent(string $scriptVersionId): array
+    public function getScriptVersion(string $scriptVersionId): array
     {
         return $this->query(
             join('/', ['script-versions', $scriptVersionId]),
