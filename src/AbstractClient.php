@@ -28,6 +28,7 @@ use Amp\Http\Client\Request;
 use League\Uri\Http;
 use function http_build_query;
 use function json_decode;
+use function json_encode;
 use function sprintf;
 use const JSON_THROW_ON_ERROR;
 
@@ -46,7 +47,7 @@ abstract class AbstractClient
         }
 
         $response = $this->httpClient->request(
-            new Request($uri, $method, $data ? BufferedContent::fromJson($data) : '')
+            new Request($uri, $method, $data ? BufferedContent::fromString(json_encode($data, JSON_THROW_ON_ERROR)) : '')
         );
 
         if ($response->getStatus() !== $expectStatus) {
