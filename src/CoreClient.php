@@ -55,7 +55,7 @@ class CoreClient extends AbstractClient
         return $this->query(
             join('/', ['scripts', $scriptId, 'script-versions']),
             201,
-            'PUT',
+            'POST',
             null,
             ['content' => $content],
         );
