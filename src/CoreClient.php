@@ -60,4 +60,34 @@ class CoreClient extends AbstractClient
             ['content' => $content],
         );
     }
+
+    public function getDataPools(int $page = 1, $perPage = 100)
+    {
+        return $this->query('data-pool', 200, 'GET', ['page' => $page, 'per_page' => $perPage]);
+    }
+
+    public function getDataPool(int $id)
+    {
+        return $this->query('data-pool/' . $id, 200, 'GET');
+    }
+
+    public function updateDataPool(int $id, array $props)
+    {
+        return $this->query('data-pool/' . $id, 200, 'PATCH', null, $props);
+    }
+
+    public function createDataPool(array $props)
+    {
+        return $this->query('data-pool', 201, 'POST', null, $props);
+    }
+
+    public function deleteDataPool(int $id)
+    {
+        return $this->query('data-pool/' . $id, 200, 'DELETE');
+    }
+
+    public function getDataPoolContent(int $id, int $page = 1, $perPage = 100)
+    {
+        return $this->query('data-pool/' . $id . '/deduped-data', 200, 'GET', ['page' => $page, 'per_page' => $perPage]);
+    }
 }
