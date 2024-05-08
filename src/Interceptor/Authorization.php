@@ -21,6 +21,8 @@ declare(strict_types=1);
 
 namespace Nodiskindrivea\PatchworksApi\Interceptor;
 
+use Amp\ByteStream\BufferException;
+use Amp\ByteStream\StreamException;
 use Amp\Cancellation;
 use Amp\ForbidCloning;
 use Amp\ForbidSerialization;
@@ -31,6 +33,7 @@ use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
+use JsonException;
 use Nodiskindrivea\PatchworksApi\Credentials;
 use Psr\Log\LoggerInterface;
 use function json_decode;
@@ -44,10 +47,20 @@ final class Authorization implements ApplicationInterceptor
 
     private const AUTH_URL = 'https://app.wearepatchworks.com/fabric/api/v1';
 
-    public function __construct(private Credentials $credentials, private ?LoggerInterface $logger = null)
+    public function __construct(private readonly Credentials $credentials, private readonly ?LoggerInterface $logger = null)
     {
     }
 
+    /**
+     * @param Request $request
+     * @param Cancellation $cancellation
+     * @param DelegateHttpClient $httpClient
+     * @return Response
+     * @throws HttpException
+     * @throws BufferException
+     * @throws StreamException
+     * @throws JsonException
+     */
     public function request(
         Request $request,
         Cancellation $cancellation,

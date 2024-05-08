@@ -21,28 +21,55 @@ declare(strict_types=1);
 
 namespace Nodiskindrivea\PatchworksApi;
 
+use Amp\ByteStream\BufferException;
+use Amp\ByteStream\StreamException;
 use Amp\Http\Client\BufferedContent;
 use Amp\Http\Client\HttpClient;
 use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
+use Amp\Http\Client\Response;
+use Exception;
+use JsonException;
 use League\Uri\Http;
+use function Amp\async;
+use function Amp\Future\await;
+use function array_map;
+use function array_merge;
 use function http_build_query;
 use function json_decode;
 use function json_encode;
+use function range;
 use function sprintf;
 use const JSON_THROW_ON_ERROR;
 
 abstract class AbstractClient
 {
-    public function __construct(private HttpClient $httpClient)
+    public function __construct(private readonly HttpClient $httpClient)
     {
     }
 
-    protected function query(string $endpoint, int $expectStatus = 200, ?string $method = 'GET', ?array $query = null, ?array $data = null): array
-    {
+    /**
+     * @param string $endpoint
+     * @param int $expectStatus
+     * @param string $method
+     * @param array|null $query
+     * @param array $data
+     * @return array
+     * @throws HttpException
+     * @throws BufferException
+     * @throws StreamException
+     * @throws JsonException
+     */
+    public function query(
+        string $endpoint,
+        int $expectStatus = 200,
+        string $method = 'GET',
+        ?array $query = [],
+        array $data = []
+    ): array {
         $uri = (Http::new())->withPath($endpoint);
 
-        if ($query) {
+        if (!empty($query)) {
             $uri = $uri->withQuery(http_build_query($query));
         }
 
@@ -57,7 +84,61 @@ abstract class AbstractClient
         $data = $response->getBody()->buffer();
 
         if ($data) {
-            return json_decode($data, true, 512, JSON_THROW_ON_ERROR)['data'] ?? [];
+            return json_decode($data, associative: true, flags: JSON_THROW_ON_ERROR)['data'] ?? [];
+        }
+
+        return [];
+    }
+
+    /**
+     * @param string $endpoint
+     * @param array $query
+     * @param int $maxRequests
+     * @return array
+     * @throws BufferException
+     * @throws HttpException
+     * @throws JsonException
+     * @throws StreamException
+     */
+    public function getAll(string $endpoint, array $query = [], int $maxRequests = 10): array
+    {
+        $uri = (Http::new())->withPath($endpoint);
+
+        $uri = $uri->withQuery(http_build_query(['page' => 1, 'per_page' => 100] + $query));
+
+        $response = $this->httpClient->request(
+            new Request($uri)
+        );
+
+        if ($response->getStatus() !== 200) {
+            throw new HttpException(sprintf('Unexpected response code %d for %s', $response->getStatus(), $response->getRequest()->getUri()));
+        }
+
+        $bodyData = $response->getBody()->buffer();
+
+        if ($bodyData) {
+            $firstPage = json_decode($bodyData, associative: true, flags: JSON_THROW_ON_ERROR);
+
+            try {
+                $currentPage = (int)$firstPage['meta']['current_page'] ?? 1;
+                $lastPage = (int)$firstPage['meta']['last_page'] ?? 1;
+                $responses = await(array_map(function (int $page) use ($uri, $query) {
+                    $uri = $uri->withQuery(http_build_query(['page' => $page, 'per_page' => 100] + $query));
+                    return async(fn() => $this->httpClient->request(new Request($uri, 'GET')));
+                }, $lastPage > $currentPage ? range($currentPage + 1, min($lastPage, $currentPage + $maxRequests + 1)) : []));
+
+                return array_merge(
+                    $firstPage['data'] ?? [],
+                    ...array_map(function (Response $response) {
+                        if ($response->getStatus() !== 200) {
+                            throw new HttpException(sprintf('Unexpected response code %d for %s', $response->getStatus(), $response->getRequest()->getUri()));
+                        }
+                        return json_decode($response->getBody()->buffer(), associative: true, flags: JSON_THROW_ON_ERROR)['data'] ?? [];
+                    }, $responses)
+                );
+            } catch (Exception $e) {
+                throw new HttpException($e->getMessage(), previous: $e);
+            }
         }
 
         return [];

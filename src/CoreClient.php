@@ -25,9 +25,9 @@ use function join;
 
 class CoreClient extends AbstractClient
 {
-    public function getScripts(int $page = 1, $perPage = 100): array
+    public function getScripts(): array
     {
-        return $this->query('scripts', 200, 'GET', ['page' => $page, 'per_page' => $perPage, 'include' => 'versions,latestVersion']);
+        return $this->getAll('scripts', ['include' => 'versions,latestVersion']);
     }
 
     public function getScript(string $scriptId): array
@@ -61,33 +61,38 @@ class CoreClient extends AbstractClient
         );
     }
 
-    public function getDataPools(int $page = 1, $perPage = 100)
+    public function getDataPools(): array
     {
-        return $this->query('data-pool', 200, 'GET', ['page' => $page, 'per_page' => $perPage]);
+        return $this->getAll('data-pool');
     }
 
-    public function getDataPool(int $id)
+    public function getDataPool(int $id): array
     {
         return $this->query('data-pool/' . $id, 200, 'GET');
     }
 
-    public function updateDataPool(int $id, array $props)
+    public function updateDataPool(int $id, array $props): array
     {
         return $this->query('data-pool/' . $id, 200, 'PATCH', null, $props);
     }
 
-    public function createDataPool(array $props)
+    public function createDataPool(array $props): array
     {
         return $this->query('data-pool', 201, 'POST', null, $props);
     }
 
-    public function deleteDataPool(int $id)
+    public function deleteDataPool(int $id): array
     {
         return $this->query('data-pool/' . $id, 200, 'DELETE');
     }
 
-    public function getDataPoolContent(int $id, int $page = 1, $perPage = 100)
+    public function getDataPoolContent(int $id): array
     {
-        return $this->query('data-pool/' . $id . '/deduped-data', 200, 'GET', ['page' => $page, 'per_page' => $perPage]);
+        return $this->getAll('data-pool/' . $id . '/deduped-data');
+    }
+
+    public function getTrackedData(): array
+    {
+        return $this->getAll('tracked-data');
     }
 }
