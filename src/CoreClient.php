@@ -21,6 +21,8 @@ declare(strict_types=1);
 
 namespace Nodiskindrivea\PatchworksApi;
 
+use DateTimeInterface;
+use Nodiskindrivea\PatchworksApi\Types\FlowRunStatus;
 use function join;
 
 class CoreClient extends AbstractClient
@@ -99,5 +101,33 @@ class CoreClient extends AbstractClient
     public function getTrackedData(): array
     {
         return $this->getAll('tracked-data');
+    }
+
+    public function getFlowRuns(DateTimeInterface $after, string $sortBy = '-started_at', FlowRunStatus $status = FlowRunStatus::ANY): array
+    {
+        $query = [
+            'include' => 'flow',
+            'fields[flow]' => 'id,name',
+            'sort' => $sortBy,
+            'filter[started_after]' => $after->getTimestamp() * 1000,
+        ];
+
+        if ($status !== FlowRunStatus::ANY) {
+            $query['filter[status]'] = $status->value;
+        }
+
+        return $this->getAll('flow-runs', $query);
+    }
+
+    public function getFlowRunLogs(string $flowId, string $sortBy = 'created_at'): array
+    {
+        $query = [
+            'include' => 'flowRunLogMetadata',
+            'fields[flowStep]' => 'id,name',
+            'sort' => $sortBy,
+            'load_payload_ids' => 'true',
+        ];
+
+        return $this->getAll(join('/', ['flow-runs', $flowId, 'flow-run-logs']), $query);
     }
 }
