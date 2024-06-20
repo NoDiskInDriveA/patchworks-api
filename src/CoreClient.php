@@ -130,4 +130,24 @@ class CoreClient extends AbstractClient
 
         return $this->getAll(join('/', ['flow-runs', $flowId, 'flow-run-logs']), $query);
     }
+
+    public function getPayloadMetadata(string $flowRunId, string $flowStepId): array
+    {
+        $query = [
+            'filter[flow_run_id]' => $flowRunId,
+            'filter[flow_step_id]' => $flowStepId,
+        ];
+
+        return $this->getAll(join('/', ['payload-metadata']), $query);
+    }
+
+    public function getPayload(int $payloadId): ?string
+    {
+        $result = $this->query(
+            join('/', ['payload-metadata', $payloadId]),
+            unwrapData: false
+        );
+
+        return $result[0] ?? null;
+    }
 }

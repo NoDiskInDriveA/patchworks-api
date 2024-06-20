@@ -65,7 +65,8 @@ abstract class AbstractClient
         int $expectStatus = 200,
         string $method = 'GET',
         ?array $query = [],
-        array $data = []
+        array $data = [],
+        bool $unwrapData = true
     ): array {
         $uri = (Http::new())->withPath($endpoint);
 
@@ -84,7 +85,7 @@ abstract class AbstractClient
         $data = $response->getBody()->buffer();
 
         if ($data) {
-            return json_decode($data, associative: true, flags: JSON_THROW_ON_ERROR)['data'] ?? [];
+            return $unwrapData ? (json_decode($data, associative: true, flags: JSON_THROW_ON_ERROR)['data'] ?? []) : [$data];
         }
 
         return [];
