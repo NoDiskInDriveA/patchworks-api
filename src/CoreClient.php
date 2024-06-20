@@ -144,7 +144,7 @@ class CoreClient extends AbstractClient
     public function getPayload(int $payloadId): ?string
     {
         $result = $this->query(
-            join('/', ['payload-metadata', $payloadId]),
+            join('/', ['payload-metadata', $payloadId, 'download']),
             unwrapData: false
         );
 
