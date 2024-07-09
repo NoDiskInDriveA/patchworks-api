@@ -45,7 +45,7 @@ final class Authorization implements ApplicationInterceptor
     use ForbidCloning;
     use ForbidSerialization;
 
-    private const AUTH_URL = 'https://app.wearepatchworks.com/fabric/api/v1';
+    private const AUTH_URL = 'https://svc-fabric.wearepatchworks.com/api/v1';
 
     public function __construct(private readonly Credentials $credentials, private readonly ?LoggerInterface $logger = null)
     {

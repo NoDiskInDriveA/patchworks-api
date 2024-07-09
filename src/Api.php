@@ -23,6 +23,6 @@ namespace Nodiskindrivea\PatchworksApi;
 
 enum Api: string
 {
-    case FABRIC = 'https://app.wearepatchworks.com/fabric/api/v2/';
-    case CORE = 'https://app.wearepatchworks.com/core-main/api/v1/';
+    case FABRIC = 'https://svc-fabric.wearepatchworks.com/api/v2/';
+    case CORE = 'https://core.wearepatchworks.com/api/v1/';
 }
