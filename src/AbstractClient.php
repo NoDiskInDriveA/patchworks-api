@@ -38,6 +38,8 @@ use function array_merge;
 use function http_build_query;
 use function json_decode;
 use function json_encode;
+use function ksort;
+use function min;
 use function range;
 use function sprintf;
 use const JSON_THROW_ON_ERROR;
@@ -127,7 +129,7 @@ abstract class AbstractClient
                     $uri = $uri->withQuery(http_build_query(['page' => $page, 'per_page' => 100] + $query));
                     return async(fn() => $this->httpClient->request(new Request($uri, 'GET')));
                 }, $lastPage > $currentPage ? range($currentPage + 1, min($lastPage, $currentPage + $maxRequests + 1)) : []));
-
+                ksort($responses);
                 return array_merge(
                     $firstPage['data'] ?? [],
                     ...array_map(function (Response $response) {
