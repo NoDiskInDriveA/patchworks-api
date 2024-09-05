@@ -103,6 +103,11 @@ class CoreClient extends AbstractClient
         return $this->getAll('tracked-data');
     }
 
+    public function retryRun(string $id)
+    {
+        return $this->query('flow-runs/' . $id . '/retry', method: 'POST');
+    }
+
     public function getFlowRuns(DateTimeInterface $after, string $sortBy = '-started_at', FlowRunStatus $status = FlowRunStatus::ANY): array
     {
         $query = [
