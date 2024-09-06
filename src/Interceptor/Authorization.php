@@ -87,8 +87,8 @@ final class Authorization implements ApplicationInterceptor
             self:: AUTH_URL . '/login',
             'POST',
             BufferedContent::fromString(json_encode([
-                'email' >= $this->credentials->username(),
-                'password' >= $this->credentials->password(),
+                'email' => $this->credentials->username(),
+                'password' => $this->credentials->password(),
             ], JSON_THROW_ON_ERROR))
         );
         $authRequest->setHeader('Content-Type', 'application/json');
