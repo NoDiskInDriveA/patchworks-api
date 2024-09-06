@@ -24,13 +24,14 @@ namespace Nodiskindrivea\PatchworksApi;
 use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Interceptor\ResolveBaseUri;
 use Amp\Http\Client\Interceptor\SetRequestHeader;
+use Nodiskindrivea\PatchworksApi\Api\CredentialsInterface;
 use Nodiskindrivea\PatchworksApi\Interceptor\Authorization;
 use Psr\Log\LoggerInterface;
 
 final class ClientBuilder
 {
     public function __construct(
-        private Credentials $credentials,
+        private CredentialsInterface $credentials,
         private LoggerInterface $logger
     ) {
     }

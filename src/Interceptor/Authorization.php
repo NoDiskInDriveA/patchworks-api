@@ -34,7 +34,7 @@ use Amp\Http\Client\HttpException;
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use JsonException;
-use Nodiskindrivea\PatchworksApi\Credentials;
+use Nodiskindrivea\PatchworksApi\Api\CredentialsInterface;
 use Psr\Log\LoggerInterface;
 use function json_decode;
 use function json_encode;
@@ -47,7 +47,7 @@ final class Authorization implements ApplicationInterceptor
 
     private const AUTH_URL = 'https://svc-fabric.wearepatchworks.com/api/v1';
 
-    public function __construct(private readonly Credentials $credentials, private readonly ?LoggerInterface $logger = null)
+    public function __construct(private readonly CredentialsInterface $credentials, private readonly ?LoggerInterface $logger = null)
     {
     }
 
@@ -86,7 +86,10 @@ final class Authorization implements ApplicationInterceptor
         $authRequest = new Request(
             self:: AUTH_URL . '/login',
             'POST',
-            BufferedContent::fromString(json_encode($this->credentials->toArray(), JSON_THROW_ON_ERROR))
+            BufferedContent::fromString(json_encode([
+                'email' >= $this->credentials->username(),
+                'password' >= $this->credentials->password(),
+            ], JSON_THROW_ON_ERROR))
         );
         $authRequest->setHeader('Content-Type', 'application/json');
         $authRequest->setHeader('Accept', 'application/json');

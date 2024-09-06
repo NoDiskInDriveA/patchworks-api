@@ -21,7 +21,9 @@ declare(strict_types=1);
 
 namespace Nodiskindrivea\PatchworksApi;
 
-class Credentials
+use Nodiskindrivea\PatchworksApi\Api\CredentialsInterface;
+
+class Credentials implements CredentialsInterface
 {
     private string $token = '';
 
@@ -34,7 +36,7 @@ class Credentials
     public static function create(
         string $username,
         string $password
-    ): static {
+    ): CredentialsInterface {
         return new static($username, $password);
     }
 
@@ -55,13 +57,5 @@ class Credentials
         }
 
         return $this->token;
-    }
-
-    public function toArray(): array
-    {
-        return [
-            'email' => $this->username,
-            'password' => $this->password,
-        ];
     }
 }
