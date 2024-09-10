@@ -47,6 +47,11 @@ class CoreClient extends AbstractClient
         return $this->query('scripts/' . $scriptId, 200, 'PATCH', null, $props);
     }
 
+    public function createScript(array $props): array
+    {
+        return $this->query('scripts', 201, 'POST', null, $props);
+    }
+
     public function getScriptVersion(string $scriptVersionId): array
     {
         return $this->query(
