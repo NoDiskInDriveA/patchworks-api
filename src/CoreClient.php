@@ -121,7 +121,7 @@ class CoreClient extends AbstractClient
     public function getFlowRuns(DateTimeInterface $after, string $sortBy = '-started_at', FlowRunStatus $status = FlowRunStatus::ANY): array
     {
         $query = [
-            'include' => 'flow',
+            'include' => 'flow,flowVersion',
             'fields[flow]' => 'id,name',
             'sort' => $sortBy,
             'filter[started_after]' => $after->getTimestamp() * 1000,
