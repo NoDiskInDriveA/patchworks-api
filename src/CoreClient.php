@@ -165,4 +165,19 @@ class CoreClient extends AbstractClient
 
         return $result[0] ?? null;
     }
+
+    public function getScheduledFlows()
+    {
+        $query = [
+            'filter[status]' => 'pending',
+            'include' => 'flow',
+        ];
+
+        return $this->getAll(join('/', ['scheduled-flows']), $query, 50);
+    }
+
+    public function deleteScheduledFlow(string $id)
+    {
+        return $this->query('scheduled-flows/' . $id, 200, 'DELETE');
+    }
 }

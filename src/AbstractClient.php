@@ -25,7 +25,7 @@ use Amp\ByteStream\BufferException;
 use Amp\ByteStream\StreamException;
 use Amp\Http\Client\BufferedContent;
 use Amp\Http\Client\HttpClient;
-use Amp\Http\Client\HttpException;
+
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Exception;
@@ -81,7 +81,7 @@ abstract class AbstractClient
         );
 
         if ($response->getStatus() !== $expectStatus) {
-            throw new HttpException(sprintf('Unexpected response code %d for %s', $response->getStatus(), $response->getRequest()->getUri()));
+            throw new HttpException(sprintf('Unexpected response code %d for %s', $response->getStatus(), $response->getRequest()->getUri()), response: $response);
         }
 
         $data = $response->getBody()->buffer();
@@ -134,13 +134,13 @@ abstract class AbstractClient
                     $firstPage['data'] ?? [],
                     ...array_map(function (Response $response) {
                         if ($response->getStatus() !== 200) {
-                            throw new HttpException(sprintf('Unexpected response code %d for %s', $response->getStatus(), $response->getRequest()->getUri()));
+                            throw new HttpException(sprintf('Unexpected response code %d for %s', $response->getStatus(), $response->getRequest()->getUri()), response: $response);
                         }
                         return json_decode($response->getBody()->buffer(), associative: true, flags: JSON_THROW_ON_ERROR)['data'] ?? [];
                     }, $responses)
                 );
             } catch (Exception $e) {
-                throw new HttpException($e->getMessage(), previous: $e);
+                throw new \Amp\Http\Client\HttpException($e->getMessage(), previous: $e);
             }
         }
 
