@@ -170,7 +170,7 @@ class CoreClient extends AbstractClient
         return $result[0] ?? null;
     }
 
-    public function getScheduledFlows()
+    public function getScheduledFlows(): array
     {
         $query = [
             'filter[status]' => 'pending',
@@ -180,8 +180,19 @@ class CoreClient extends AbstractClient
         return $this->getAll(join('/', ['scheduled-flows']), $query, 50);
     }
 
-    public function deleteScheduledFlow(string $id)
+    public function deleteScheduledFlow(string $id): array
     {
         return $this->query('scheduled-flows/' . $id, 200, 'DELETE');
+    }
+
+    public function getFlowSteps(int $flowVersionId): array
+    {
+        $query = [
+            'to_tree' => true,
+            'include' => 'endpoint.system.logo,connector,filters,parentFlowStep,routes,variables,scriptVersion.script,flowVersion,cache,flow,notificationGroup',
+            'load_notes_count' => false,
+        ];
+
+        return $this->query(sprintf('flow-versions/%s/steps', $flowVersionId), query: $query);
     }
 }
