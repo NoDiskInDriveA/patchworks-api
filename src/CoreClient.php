@@ -118,7 +118,7 @@ class CoreClient extends AbstractClient
         return $this->query('flow-runs/' . $id, method: 'GET');
     }
 
-    public function getFlowRuns(DateTimeInterface $after, string $sortBy = '-started_at', FlowRunStatus $status = FlowRunStatus::ANY): array
+    public function getFlowRuns(DateTimeInterface $after, string $sortBy = '-started_at', FlowRunStatus $status = FlowRunStatus::ANY, ?string $search = null): array
     {
         $query = [
             'include' => 'flow,flowVersion',
@@ -131,7 +131,11 @@ class CoreClient extends AbstractClient
             $query['filter[status]'] = $status->value;
         }
 
-        return $this->getAll('flow-runs', $query);
+        if ($search !== null) {
+            $query['filter[search]'] = $search;
+        }
+
+        return $this->getAll('flow-runs', $query, 50);
     }
 
     public function getFlowRunLogs(string $flowId, string $sortBy = 'created_at'): array
