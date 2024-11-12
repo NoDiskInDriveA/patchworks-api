@@ -114,7 +114,7 @@ abstract class AbstractClient
         );
 
         if ($response->getStatus() !== 200) {
-            throw new HttpException(sprintf('Unexpected response code %d for %s', $response->getStatus(), $response->getRequest()->getUri()));
+            throw new HttpException(sprintf('Unexpected response code %d for %s', $response->getStatus(), $response->getRequest()->getUri()), response: $response);
         }
 
         $bodyData = $response->getBody()->buffer();
