@@ -166,14 +166,17 @@ class CoreClient extends AbstractClient
         return $result[0] ?? null;
     }
 
-    public function getScheduledFlows(): Generator
+    public function getScheduledFlows(?string $status = null, int $maxPages = self::DEFAULT_MAX_PAGES): Generator
     {
         $query = [
-            'filter[status]' => 'pending',
-            'include' => 'flow',
+            'include' => 'flow,flowVersion',
         ];
 
-        return $this->items(join('/', ['scheduled-flows']), $query);
+        if (null !== $status) {
+            $query['filter[status]'] = $status;
+        }
+
+        return $this->items(join('/', ['scheduled-flows']), $query, maxPages: $maxPages);
     }
 
     public function deleteScheduledFlow(string $id): array

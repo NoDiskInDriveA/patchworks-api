@@ -125,7 +125,7 @@ abstract class AbstractClient
         } while ($currentPage < (($maxPages === null) ? $lastPage : min($lastPage, $maxPages)));
 
         if ($maxPages !== null && $currentPage < $lastPage) {
-            $this->logger?->debug('Hard limit reached, stopping iteration with leftover pages');
+            $this->logger?->debug('Hard limit reached, stopping iteration with {amount} leftover pages', ['amount' => $lastPage - $currentPage]);
         }
     }
 }

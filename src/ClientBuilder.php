@@ -44,7 +44,8 @@ final class ClientBuilder
             ->intercept(new SetRequestHeader('Content-Type', 'application/json'))
             ->intercept(new SetRequestHeader('Accept', 'application/json'))
             ->intercept(new Authorization($this->credentials, $this->logger))
-            ->build()
+            ->build(),
+            $this->logger
         );
     }
 
@@ -56,7 +57,8 @@ final class ClientBuilder
             ->intercept(new SetRequestHeader('Content-Type', 'application/json'))
             ->intercept(new SetRequestHeader('Accept', 'application/json'))
             ->intercept(new Authorization($this->credentials, $this->logger))
-            ->build()
+            ->build(),
+            $this->logger
         );
     }
 }
