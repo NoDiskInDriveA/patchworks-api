@@ -25,12 +25,13 @@ use Amp\ByteStream\BufferException;
 use Amp\ByteStream\StreamException;
 use Amp\Http\Client\BufferedContent;
 use Amp\Http\Client\HttpClient;
-
 use Amp\Http\Client\Request;
 use Amp\Http\Client\Response;
 use Exception;
+use Generator;
 use JsonException;
 use League\Uri\Http;
+use Psr\Log\LoggerInterface;
 use function Amp\async;
 use function Amp\Future\await;
 use function array_map;
@@ -43,10 +44,15 @@ use function min;
 use function range;
 use function sprintf;
 use const JSON_THROW_ON_ERROR;
+use const JSON_UNESCAPED_SLASHES;
+use const JSON_UNESCAPED_UNICODE;
 
 abstract class AbstractClient
 {
-    public function __construct(private readonly HttpClient $httpClient)
+    public const DEFAULT_PER_PAGE = 250;
+    public const DEFAULT_MAX_PAGES = 50;
+
+    public function __construct(private readonly HttpClient $httpClient, private readonly ?LoggerInterface $logger = null)
     {
     }
 
@@ -64,12 +70,13 @@ abstract class AbstractClient
      */
     public function query(
         string $endpoint,
-        int $expectStatus = 200,
+        int    $expectStatus = 200,
         string $method = 'GET',
         ?array $query = [],
-        array $data = [],
-        bool $unwrapData = true
-    ): array {
+        array  $data = [],
+        ?string $unwrapKey = 'data'
+    ): array
+    {
         $uri = (Http::new())->withPath($endpoint);
 
         if (!empty($query)) {
@@ -77,7 +84,7 @@ abstract class AbstractClient
         }
 
         $response = $this->httpClient->request(
-            new Request($uri, $method, $data ? BufferedContent::fromString(json_encode($data, JSON_THROW_ON_ERROR)) : '')
+            new Request($uri, $method, $data ? BufferedContent::fromString(json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) : '')
         );
 
         if ($response->getStatus() !== $expectStatus) {
@@ -87,63 +94,38 @@ abstract class AbstractClient
         $data = $response->getBody()->buffer();
 
         if ($data) {
-            return $unwrapData ? (json_decode($data, associative: true, flags: JSON_THROW_ON_ERROR)['data'] ?? []) : [$data];
+            return (null !== $unwrapKey) ? (json_decode($data, associative: true, flags: JSON_THROW_ON_ERROR)[$unwrapKey] ?? []) : [$data];
         }
 
         return [];
     }
 
-    /**
-     * @param string $endpoint
-     * @param array $query
-     * @param int $maxRequests
-     * @return array
-     * @throws BufferException
-     * @throws HttpException
-     * @throws JsonException
-     * @throws StreamException
-     */
-    public function getAll(string $endpoint, array $query = [], int $maxRequests = 10): array
+    public function items(string $endpoint, array $query = [], array $headers = [], string $iterateKey = 'data', ?int $maxPages = self::DEFAULT_MAX_PAGES): Generator
     {
         $uri = (Http::new())->withPath($endpoint);
+        $currentPage = 0;
+        do {
+            $currentPage++;
+            $uri = $uri->withQuery(http_build_query(['per_page' => static::DEFAULT_PER_PAGE] + $query + ['page' => $currentPage]));
+            $response = $this->httpClient->request(
+                new Request($uri)
+            );
 
-        $uri = $uri->withQuery(http_build_query(['page' => 1, 'per_page' => 100] + $query));
-
-        $response = $this->httpClient->request(
-            new Request($uri)
-        );
-
-        if ($response->getStatus() !== 200) {
-            throw new HttpException(sprintf('Unexpected response code %d for %s', $response->getStatus(), $response->getRequest()->getUri()), response: $response);
-        }
-
-        $bodyData = $response->getBody()->buffer();
-
-        if ($bodyData) {
-            $firstPage = json_decode($bodyData, associative: true, flags: JSON_THROW_ON_ERROR);
-
-            try {
-                $currentPage = (int)$firstPage['meta']['current_page'] ?? 1;
-                $lastPage = (int)$firstPage['meta']['last_page'] ?? 1;
-                $responses = await(array_map(function (int $page) use ($uri, $query) {
-                    $uri = $uri->withQuery(http_build_query(['page' => $page, 'per_page' => 100] + $query));
-                    return async(fn() => $this->httpClient->request(new Request($uri, 'GET')));
-                }, $lastPage > $currentPage ? range($currentPage + 1, min($lastPage, $currentPage + $maxRequests + 1)) : []));
-                ksort($responses);
-                return array_merge(
-                    $firstPage['data'] ?? [],
-                    ...array_map(function (Response $response) {
-                        if ($response->getStatus() !== 200) {
-                            throw new HttpException(sprintf('Unexpected response code %d for %s', $response->getStatus(), $response->getRequest()->getUri()), response: $response);
-                        }
-                        return json_decode($response->getBody()->buffer(), associative: true, flags: JSON_THROW_ON_ERROR)['data'] ?? [];
-                    }, $responses)
-                );
-            } catch (Exception $e) {
-                throw new \Amp\Http\Client\HttpException($e->getMessage(), previous: $e);
+            if ($response->getStatus() !== 200) {
+                throw new HttpException(sprintf('Unexpected response code %d for %s', $response->getStatus(), $response->getRequest()->getUri()), response: $response);
             }
-        }
 
-        return [];
+            $pageData = json_decode($response->getBody()->buffer(), associative: true, flags: JSON_THROW_ON_ERROR);
+
+            $lastPage = (int)$pageData['meta']['last_page'] ?? 1;
+            $currentPage = (int)$pageData['meta']['current_page'] ?? 1;
+            foreach ($pageData[$iterateKey] as $item) {
+                yield $item;
+            }
+        } while ($currentPage < (($maxPages === null) ? $lastPage : min($lastPage, $maxPages)));
+
+        if ($maxPages !== null && $currentPage < $lastPage) {
+            $this->logger?->debug('Hard limit reached, stopping iteration with leftover pages');
+        }
     }
 }

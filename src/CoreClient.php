@@ -22,14 +22,15 @@ declare(strict_types=1);
 namespace Nodiskindrivea\PatchworksApi;
 
 use DateTimeInterface;
+use Generator;
 use Nodiskindrivea\PatchworksApi\Types\FlowRunStatus;
 use function join;
 
 class CoreClient extends AbstractClient
 {
-    public function getScripts(): array
+    public function getScripts(): Generator
     {
-        return $this->getAll('scripts', ['include' => 'versions,latestVersion']);
+        return $this->items('scripts', ['include' => 'versions,latestVersion']);
     }
 
     public function getScript(string $scriptId): array
@@ -73,9 +74,9 @@ class CoreClient extends AbstractClient
         );
     }
 
-    public function getDataPools(): array
+    public function getDataPools(): Generator
     {
-        return $this->getAll('data-pool');
+        return $this->items('data-pool');
     }
 
     public function getDataPool(int $id): array
@@ -98,27 +99,22 @@ class CoreClient extends AbstractClient
         return $this->query('data-pool/' . $id, 200, 'DELETE');
     }
 
-    public function getDataPoolContent(int $id): array
+    public function getDataPoolContent(int $id): Generator
     {
-        return $this->getAll('data-pool/' . $id . '/deduped-data');
+        return $this->items('data-pool/' . $id . '/deduped-data');
     }
 
-    public function getTrackedData(): array
-    {
-        return $this->getAll('tracked-data');
-    }
-
-    public function retryRun(string $id)
+    public function retryRun(string $id): array
     {
         return $this->query('flow-runs/' . $id . '/retry', method: 'POST');
     }
 
-    public function getFlowRun(string $id)
+    public function getFlowRun(string $id): array
     {
         return $this->query('flow-runs/' . $id, method: 'GET');
     }
 
-    public function getFlowRuns(DateTimeInterface $after, string $sortBy = '-started_at', FlowRunStatus $status = FlowRunStatus::ANY, ?string $search = null): array
+    public function getFlowRuns(DateTimeInterface $after, string $sortBy = '-started_at', FlowRunStatus $status = FlowRunStatus::ANY, ?string $search = null): Generator
     {
         $query = [
             'include' => 'flow,flowVersion',
@@ -135,10 +131,10 @@ class CoreClient extends AbstractClient
             $query['filter[search]'] = $search;
         }
 
-        return $this->getAll('flow-runs', $query, 50);
+        return $this->items('flow-runs', $query);
     }
 
-    public function getFlowRunLogs(string $flowId, string $sortBy = 'created_at'): array
+    public function getFlowRunLogs(string $flowId, string $sortBy = 'created_at'): Generator
     {
         $query = [
             'include' => 'flowRunLogMetadata',
@@ -147,37 +143,37 @@ class CoreClient extends AbstractClient
             'load_payload_ids' => 'true',
         ];
 
-        return $this->getAll(join('/', ['flow-runs', $flowId, 'flow-run-logs']), $query);
+        return $this->items(join('/', ['flow-runs', $flowId, 'flow-run-logs']), $query);
     }
 
-    public function getPayloadMetadata(string $flowRunId, string $flowStepId): array
+    public function getPayloadMetadata(string $flowRunId, string $flowStepId): Generator
     {
         $query = [
             'filter[flow_run_id]' => $flowRunId,
             'filter[flow_step_id]' => $flowStepId,
         ];
 
-        return $this->getAll(join('/', ['payload-metadata']), $query);
+        return $this->items(join('/', ['payload-metadata']), $query);
     }
 
     public function getPayload(int $payloadId): ?string
     {
         $result = $this->query(
             join('/', ['payload-metadata', $payloadId, 'download']),
-            unwrapData: false
+            unwrapKey: null
         );
 
         return $result[0] ?? null;
     }
 
-    public function getScheduledFlows(): array
+    public function getScheduledFlows(): Generator
     {
         $query = [
             'filter[status]' => 'pending',
             'include' => 'flow',
         ];
 
-        return $this->getAll(join('/', ['scheduled-flows']), $query, 50);
+        return $this->items(join('/', ['scheduled-flows']), $query);
     }
 
     public function deleteScheduledFlow(string $id): array
