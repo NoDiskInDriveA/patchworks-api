@@ -23,7 +23,7 @@ namespace Nodiskindrivea\PatchworksApi;
 
 use DateTimeInterface;
 use Generator;
-use Nodiskindrivea\PatchworksApi\Types\FlowRunStatus;
+use function array_filter;
 use function join;
 
 class CoreClient extends AbstractClient
@@ -111,39 +111,58 @@ class CoreClient extends AbstractClient
 
     public function getFlowRun(string $id): array
     {
-        return $this->query('flow-runs/' . $id, method: 'GET');
+        return $this->query('flow-runs/' . $id, method: 'GET', query: ['include' => 'flow,flowVersion']);
     }
 
-    public function getFlowRuns(DateTimeInterface $after, string $sortBy = '-started_at', FlowRunStatus $status = FlowRunStatus::ANY, ?string $search = null): Generator
+    public function searchFlowRuns(
+        DateTimeInterface  $filterStartedAfter,
+        ?DateTimeInterface $filterStartedBefore = null,
+        ?string            $filterStatus = null,
+        ?string            $filterSearch = null,
+        ?int               $filterFlowId = null,
+        ?int               $filterFlowVersionId = null,
+        ?string            $filterTrigger = null,
+        ?bool              $filterHasWarnings = null,
+        ?bool              $filterIsRetried = null,
+        string             $sortBy = '-started_at'
+    ): Generator
     {
+        // unused filters: user_id, started_on
         $query = [
-            'include' => 'flow,flowVersion',
+            'include' => 'flow,flowVersion,payloadSize',
             'fields[flow]' => 'id,name',
             'sort' => $sortBy,
-            'filter[started_after]' => $after->getTimestamp() * 1000,
+            'filter[started_after]' => $filterStartedAfter->getTimestamp() * 1000,
         ];
 
-        if ($status !== FlowRunStatus::ANY) {
-            $query['filter[status]'] = $status->value;
+        if (null !== $filterStartedBefore) {
+            $query['filter[started_before]'] = $filterStartedBefore->getTimestamp() * 1000;
         }
 
-        if ($search !== null) {
-            $query['filter[search]'] = $search;
+        foreach (array_filter([
+            'status' => $filterStatus,
+            'search' => $filterSearch,
+            'flow_id' => $filterFlowId,
+            'flow_version_id' => $filterFlowVersionId,
+            'trigger' => $filterTrigger,
+            'has_warnings' => $filterHasWarnings,
+            'retried' => $filterIsRetried,
+        ], fn($v) => null !== $v) as $k => $v) {
+            $query['filter[' . $k . ']'] = $v;
         }
 
         return $this->items('flow-runs', $query);
     }
 
-    public function getFlowRunLogs(string $flowId, string $sortBy = 'created_at'): Generator
+    public function getFlowRunLogs(string $flowRunId, string $sortBy = 'created_at'): Generator
     {
         $query = [
             'include' => 'flowRunLogMetadata',
-            'fields[flowStep]' => 'id,name',
             'sort' => $sortBy,
             'load_payload_ids' => 'true',
         ];
 
-        return $this->items(join('/', ['flow-runs', $flowId, 'flow-run-logs']), $query);
+        return $this->items(join('/', ['flow-runs', $flowRunId, 'flow-run-logs']), $query);
     }
 
     public function getPayloadMetadata(string $flowRunId, string $flowStepId): Generator
