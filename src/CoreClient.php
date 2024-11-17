@@ -188,7 +188,7 @@ class CoreClient extends AbstractClient
     public function getScheduledFlows(?string $status = null, int $maxPages = self::DEFAULT_MAX_PAGES): Generator
     {
         $query = [
-            'include' => 'flow,flowVersion',
+            'include' => 'flow,flowVersion,payloadMetadata',
         ];
 
         if (null !== $status) {
