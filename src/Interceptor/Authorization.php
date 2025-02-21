@@ -62,10 +62,11 @@ final class Authorization implements ApplicationInterceptor
      * @throws JsonException
      */
     public function request(
-        Request $request,
-        Cancellation $cancellation,
+        Request            $request,
+        Cancellation       $cancellation,
         DelegateHttpClient $httpClient
-    ): Response {
+    ): Response
+    {
         $clonedRequest = clone $request;
 
         if ($this->credentials->token()) {
@@ -84,7 +85,7 @@ final class Authorization implements ApplicationInterceptor
 
         $authClient = HttpClientBuilder::buildDefault();
         $authRequest = new Request(
-            self:: AUTH_URL . '/login',
+            self::AUTH_URL . '/login',
             'POST',
             BufferedContent::fromString(json_encode([
                 'email' => $this->credentials->username(),

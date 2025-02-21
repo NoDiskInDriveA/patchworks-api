@@ -28,7 +28,7 @@ use function join;
 
 class CoreClient extends AbstractClient
 {
-    public function getScripts(): Generator
+    public function getScripts(): Items
     {
         return $this->items('scripts', ['include' => 'versions,latestVersion']);
     }
@@ -74,7 +74,7 @@ class CoreClient extends AbstractClient
         );
     }
 
-    public function getDataPools(): Generator
+    public function getDataPools(): Items
     {
         return $this->items('data-pool');
     }
@@ -99,7 +99,7 @@ class CoreClient extends AbstractClient
         return $this->query('data-pool/' . $id, 200, 'DELETE');
     }
 
-    public function getDataPoolContent(int $id): Generator
+    public function getDataPoolContent(int $id): Items
     {
         return $this->items('data-pool/' . $id . '/deduped-data');
     }
@@ -122,14 +122,14 @@ class CoreClient extends AbstractClient
         ?int               $filterFlowId = null,
         ?int               $filterFlowVersionId = null,
         ?string            $filterTrigger = null,
-        ?bool              $filterHasWarnings = null,
-        ?bool              $filterIsRetried = null,
+        bool               $filterHasWarnings = false,
+        bool               $filterIsRetried = false,
         string             $sortBy = '-started_at'
-    ): Generator
+    ): Items
     {
         // unused filters: user_id, started_on
         $query = [
-            'include' => 'flow,flowVersion,payloadSize',
+            'include' => 'flow,flowVersion,payloadSize,retriedFlowRun',
             'fields[flow]' => 'id,name',
             'sort' => $sortBy,
             'filter[started_after]' => $filterStartedAfter->getTimestamp() * 1000,
@@ -139,14 +139,20 @@ class CoreClient extends AbstractClient
             $query['filter[started_before]'] = $filterStartedBefore->getTimestamp() * 1000;
         }
 
+        if ($filterIsRetried) {
+            $query['filter[retried]'] = 'true';
+        }
+
+        if ($filterHasWarnings) {
+            $query['filter[has_warnings]'] = 'true';
+        }
+
         foreach (array_filter([
             'status' => $filterStatus,
             'search' => $filterSearch,
             'flow_id' => $filterFlowId,
             'flow_version_id' => $filterFlowVersionId,
             'trigger' => $filterTrigger,
-            'has_warnings' => $filterHasWarnings,
-            'retried' => $filterIsRetried,
         ], fn($v) => null !== $v) as $k => $v) {
             $query['filter[' . $k . ']'] = $v;
         }
@@ -154,7 +160,7 @@ class CoreClient extends AbstractClient
         return $this->items('flow-runs', $query);
     }
 
-    public function getFlowRunLogs(string $flowRunId, string $sortBy = 'created_at'): Generator
+    public function getFlowRunLogs(string $flowRunId, string $sortBy = 'created_at'): Items
     {
         $query = [
             'include' => 'flowRunLogMetadata',
@@ -165,8 +171,9 @@ class CoreClient extends AbstractClient
         return $this->items(join('/', ['flow-runs', $flowRunId, 'flow-run-logs']), $query);
     }
 
-    public function getPayloadMetadata(string $flowRunId, string $flowStepId): Generator
+    public function getPayloadMetadata(string $flowRunId, string $flowStepId): Items
     {
+        // TODO support flow_log_id filter?
         $query = [
             'filter[flow_run_id]' => $flowRunId,
             'filter[flow_step_id]' => $flowStepId,
@@ -185,7 +192,7 @@ class CoreClient extends AbstractClient
         return $result[0] ?? null;
     }
 
-    public function getScheduledFlows(?string $status = null, int $maxPages = self::DEFAULT_MAX_PAGES): Generator
+    public function getScheduledFlows(?string $status = null, int $maxPages = self::DEFAULT_MAX_PAGES): Items
     {
         $query = [
             'include' => 'flow,flowVersion,payloadMetadata',

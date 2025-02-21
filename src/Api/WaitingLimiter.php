@@ -17,15 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-declare(strict_types=1);
-
 namespace Nodiskindrivea\PatchworksApi\Api;
 
-interface CredentialsInterface
+interface WaitingLimiter
 {
-    public function username(): string;
-
-    public function password(): string;
-
-    public function token(?string $newToken = null): string;
+    public function waitForSlot(): void;
 }

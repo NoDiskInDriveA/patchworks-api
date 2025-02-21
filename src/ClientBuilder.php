@@ -25,6 +25,7 @@ use Amp\Http\Client\HttpClientBuilder;
 use Amp\Http\Client\Interceptor\ResolveBaseUri;
 use Amp\Http\Client\Interceptor\SetRequestHeader;
 use Nodiskindrivea\PatchworksApi\Api\CredentialsInterface;
+use Nodiskindrivea\PatchworksApi\Api\WaitingLimiter;
 use Nodiskindrivea\PatchworksApi\Interceptor\Authorization;
 use Psr\Log\LoggerInterface;
 
@@ -32,20 +33,23 @@ final class ClientBuilder
 {
     public function __construct(
         private CredentialsInterface $credentials,
-        private LoggerInterface $logger
-    ) {
+        private ?WaitingLimiter $limiter,
+        private ?LoggerInterface $logger,
+    )
+    {
     }
 
     public function getFabricClient(): FabricClient
     {
         return new FabricClient(
             (new HttpClientBuilder)
-            ->intercept(new ResolveBaseUri(Api::FABRIC->value))
-            ->intercept(new SetRequestHeader('Content-Type', 'application/json'))
-            ->intercept(new SetRequestHeader('Accept', 'application/json'))
-            ->intercept(new Authorization($this->credentials, $this->logger))
-            ->build(),
-            $this->logger
+                ->intercept(new ResolveBaseUri(Api::FABRIC->value))
+                ->intercept(new SetRequestHeader('Content-Type', 'application/json'))
+                ->intercept(new SetRequestHeader('Accept', 'application/json'))
+                ->intercept(new Authorization($this->credentials, $this->logger))
+                ->build(),
+            $this->logger,
+            $this->limiter
         );
     }
 
@@ -53,12 +57,13 @@ final class ClientBuilder
     {
         return new CoreClient(
             (new HttpClientBuilder)
-            ->intercept(new ResolveBaseUri(Api::CORE->value))
-            ->intercept(new SetRequestHeader('Content-Type', 'application/json'))
-            ->intercept(new SetRequestHeader('Accept', 'application/json'))
-            ->intercept(new Authorization($this->credentials, $this->logger))
-            ->build(),
-            $this->logger
+                ->intercept(new ResolveBaseUri(Api::CORE->value))
+                ->intercept(new SetRequestHeader('Content-Type', 'application/json'))
+                ->intercept(new SetRequestHeader('Accept', 'application/json'))
+                ->intercept(new Authorization($this->credentials, $this->logger))
+                ->build(),
+            $this->logger,
+            $this->limiter
         );
     }
 }

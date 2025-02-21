@@ -1,24 +1,24 @@
 {
-    "name": "nodiskindrivea/patchworks-api",
-    "type": "library",
-    "license": "LGPL-3.0-or-later",
-    "autoload": {
-        "psr-4": {
-            "Nodiskindrivea\\PatchworksApi\\": "src/"
-        }
-    },
-    "authors": [
-        {
-            "name": "Patrick Durold",
-            "email": "patrick@durold.de"
-        }
-    ],
-    "require": {
-        "php": "^8.1",
-        "amphp/http-client": "^5.0",
-        "psr/log": "^3.0"
-    },
-    "require-dev": {
-        "amphp/phpunit-util": "^3.0"
+  "name": "nodiskindrivea/patchworks-api",
+  "type": "library",
+  "license": "LGPL-3.0-or-later",
+  "autoload": {
+    "psr-4": {
+      "Nodiskindrivea\\PatchworksApi\\": "src/"
     }
+  },
+  "authors": [
+    {
+      "name": "Patrick Durold",
+      "email": "patrick@durold.de"
+    }
+  ],
+  "require": {
+    "php": "^8.1",
+    "amphp/http-client": "^5.0",
+    "psr/log": "^3.0"
+  },
+  "require-dev": {
+    "amphp/phpunit-util": "^3.0"
+  }
 }
