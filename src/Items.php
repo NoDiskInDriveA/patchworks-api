@@ -25,6 +25,7 @@ use Countable;
 use IteratorAggregate;
 use League\Uri\Http;
 use Nodiskindrivea\PatchworksApi\Api\WaitingLimiter;
+use Nodiskindrivea\PatchworksApi\Types\RequestOption;
 use Psr\Log\LoggerInterface;
 use Traversable;
 use function http_build_query;
@@ -49,8 +50,7 @@ class Items implements Countable, IteratorAggregate
         private readonly array            $query = [],
         private readonly array            $headers = [],
         private readonly string           $iterateKey = 'data',
-        private readonly ?int             $itemsPerPage = 250,
-        private readonly ?int             $maxPages = null,
+        private readonly array            $options = [],
         private readonly ?LoggerInterface $logger = null,
         private readonly ?WaitingLimiter  $limiter = null,
     )
@@ -68,19 +68,21 @@ class Items implements Countable, IteratorAggregate
 
     private function nextPage(): void
     {
-        if ($this->currentPage >= (($this->maxPages === null) ? $this->lastPage : min($this->lastPage, $this->maxPages))) {
-            if ($this->maxPages !== null && $this->currentPage < $this->lastPage) {
+        if ($this->currentPage >= ((!isset($this->options[RequestOption::MAX_PAGES->value])) ? $this->lastPage : min($this->lastPage, $this->options[RequestOption::MAX_PAGES->value]))) {
+            if (isset($this->options[RequestOption::MAX_PAGES->value]) && $this->currentPage < $this->lastPage) {
                 $this->logger?->debug('Hard limit reached, stopping iteration with {amount} leftover pages', ['amount' => $this->lastPage - $this->currentPage]);
             }
             $this->items = null;
             return;
         }
-
+        $this->currentPage++;
         $uri = (Http::new())->withPath($this->endpoint);
 
-        $request = new Request($uri->withQuery(http_build_query(['per_page' => $this->itemsPerPage] + $this->query + ['page' => $this->currentPage])));
+        $request = new Request($uri->withQuery(http_build_query(['per_page' => $this->options[RequestOption::ITEMS_PER_PAGE->value]] + $this->query + ['page' => $this->currentPage])));
         $request->setHeaders($this->headers);
-
+        $request->setTransferTimeout($this->options[RequestOption::TRANSFER_TIMEOUT->value]);
+        $request->setTcpConnectTimeout($this->options[RequestOption::CONNECT_TIMEOUT->value]);
+        $request->setInactivityTimeout($this->options[RequestOption::INACTIVITY_TIMEOUT->value]);
         $this->limiter?->waitForSlot();
         $response = $this->httpClient->request(
             $request
@@ -92,7 +94,7 @@ class Items implements Countable, IteratorAggregate
 
         $pageData = json_decode($response->getBody()->buffer(), associative: true, flags: JSON_THROW_ON_ERROR);
 
-        $this->currentPage = (int)$pageData['meta']['current_page'] ?? 1;
+        $this->currentPage = ((int)$pageData['meta']['current_page'] ?? 1);
         $this->lastPage = (int)$pageData['meta']['last_page'] ?? $this->currentPage;
         $this->count = (int)$pageData['meta']['total'] ?? 0;
         $this->items = $pageData[$this->iterateKey] ?? null;

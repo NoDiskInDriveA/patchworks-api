@@ -192,7 +192,7 @@ class CoreClient extends AbstractClient
         return $result[0] ?? null;
     }
 
-    public function getScheduledFlows(?string $status = null, int $maxPages = self::DEFAULT_MAX_PAGES): Items
+    public function getScheduledFlows(?string $status = null): Items
     {
         $query = [
             'include' => 'flow,flowVersion,payloadMetadata',
@@ -202,7 +202,7 @@ class CoreClient extends AbstractClient
             $query['filter[status]'] = $status;
         }
 
-        return $this->items(join('/', ['scheduled-flows']), $query, maxPages: $maxPages);
+        return $this->items(join('/', ['scheduled-flows']), $query);
     }
 
     public function deleteScheduledFlow(string $id): array

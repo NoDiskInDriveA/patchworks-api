@@ -29,8 +29,10 @@ use Amp\Http\Client\Request;
 use JsonException;
 use League\Uri\Http;
 use Nodiskindrivea\PatchworksApi\Api\WaitingLimiter;
+use Nodiskindrivea\PatchworksApi\Types\RequestOption;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\RateLimiter\LimiterInterface;
+use function array_merge;
 use function http_build_query;
 use function json_decode;
 use function json_encode;
@@ -47,9 +49,18 @@ abstract class AbstractClient
     public function __construct(
         private readonly HttpClient $httpClient,
         private readonly ?LoggerInterface $logger = null,
-        private readonly ?WaitingLimiter $limiter = null
+        private readonly ?WaitingLimiter $limiter = null,
+        private array $options = RequestOption::DEFAULT_OPTIONS,
     )
     {
+    }
+
+    public function withOptions(array $options): static
+    {
+        $sub = clone $this;
+        $sub->options = array_merge($this->options, $options);
+
+        return $sub;
     }
 
     /**
@@ -79,9 +90,15 @@ abstract class AbstractClient
             $uri = $uri->withQuery(http_build_query($query));
         }
 
+        $request = new Request($uri, $method, $data ? BufferedContent::fromString(json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) : '');
+
+        $request->setTransferTimeout($this->options[RequestOption::TRANSFER_TIMEOUT->value]);
+        $request->setTcpConnectTimeout($this->options[RequestOption::CONNECT_TIMEOUT->value]);
+        $request->setInactivityTimeout($this->options[RequestOption::INACTIVITY_TIMEOUT->value]);
+
         $this->limiter?->waitForSlot();
         $response = $this->httpClient->request(
-            new Request($uri, $method, $data ? BufferedContent::fromString(json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) : '')
+            $request
         );
 
         if ($response->getStatus() !== $expectStatus) {
@@ -97,8 +114,8 @@ abstract class AbstractClient
         return [];
     }
 
-    public function items(string $endpoint, array $query = [], array $headers = [], string $iterateKey = 'data', ?int $maxPages = self::DEFAULT_MAX_PAGES): Items
+    public function items(string $endpoint, array $query = [], array $headers = [], string $iterateKey = 'data'): Items
     {
-        return new Items($this->httpClient, $endpoint, $query, $headers, $iterateKey, static::DEFAULT_PER_PAGE, $maxPages, $this->logger, $this->limiter);
+        return new Items($this->httpClient, $endpoint, $query, $headers, $iterateKey, $this->options, $this->logger, $this->limiter);
     }
 }
