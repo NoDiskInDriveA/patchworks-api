@@ -1,3 +1,3 @@
 # patchworks-api
 
-Cheapo API client for undocumented Patchworks API
+Based-on-my-needs API client for Patchworks iPAAS API
